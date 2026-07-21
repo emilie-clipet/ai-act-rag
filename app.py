@@ -16,6 +16,25 @@ st.caption(
     "Les réponses sont générées à partir des documents officiels indexés, avec citation des sources."
 )
 
+# ---------- Pop-up de bienvenue (une seule fois par session) ----------
+@st.dialog("Bienvenue sur l'Assistant AI Act ⚖️")
+def welcome_dialog():
+    st.write(
+        "Ce chatbot répond à vos questions sur le règlement européen sur l'intelligence "
+        "artificielle (AI Act), en se basant uniquement sur le texte officiel indexé. "
+        "Il cite systématiquement ses sources (document + page) pour chaque réponse."
+    )
+    st.caption("Projet personnel réalisé par Emilie Clipet")
+    if st.button("Commencer"):
+        st.session_state.welcome_shown = True
+        st.rerun()
+
+if "welcome_shown" not in st.session_state:
+    st.session_state.welcome_shown = False
+
+if not st.session_state.welcome_shown:
+    welcome_dialog()
+
 # ---------- Sidebar : configuration du backend LLM ----------
 with st.sidebar:
     st.header("⚙️ Configuration")
@@ -46,7 +65,17 @@ with st.sidebar:
             api_key = st.text_input("Clé API Groq (gratuite)", type="password")
             st.info("Clé gratuite disponible sur https://console.groq.com/keys")
 
-    top_k = st.slider("Nombre de passages récupérés (top_k)", min_value=2, max_value=10, value=5)
+    top_k = st.slider(
+        "Nombre de passages récupérés (top_k)",
+        min_value=2,
+        max_value=10,
+        value=5,
+        help=(
+            "Nombre d'extraits du règlement que le chatbot consulte avant de répondre. "
+            "Plus ce nombre est élevé, plus le contexte est riche, mais la réponse peut "
+            "être moins précise si trop d'informations sont mélangées."
+        ),
+    )
 
     st.divider()
     st.caption(
