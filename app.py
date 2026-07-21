@@ -16,6 +16,13 @@ st.caption(
     "Les réponses sont générées à partir des documents officiels indexés, avec citation des sources."
 )
 
+EXAMPLE_QUESTIONS = [
+    "Quelles sont les obligations pour les systèmes d'IA à haut risque ?",
+    "Qu'est-ce qu'un système d'IA selon l'AI Act ?",
+    "Quelles sont les pratiques d'IA interdites ?",
+    "Quelles sanctions en cas de non-conformité ?",
+]
+
 # ---------- Pop-up de bienvenue (une seule fois par session) ----------
 @st.dialog("Bienvenue sur l'Assistant AI Act ⚖️")
 def welcome_dialog():
@@ -26,13 +33,13 @@ def welcome_dialog():
     )
     st.caption("Projet personnel réalisé par Emilie Clipet")
     if st.button("Commencer"):
-        st.session_state.welcome_shown = True
         st.rerun()
 
 if "welcome_shown" not in st.session_state:
     st.session_state.welcome_shown = False
 
 if not st.session_state.welcome_shown:
+    st.session_state.welcome_shown = True
     welcome_dialog()
 
 # ---------- Sidebar : configuration du backend LLM ----------
@@ -66,14 +73,15 @@ with st.sidebar:
             st.info("Clé gratuite disponible sur https://console.groq.com/keys")
 
     top_k = st.slider(
-        "Nombre de passages récupérés (top_k)",
+        "Nombre d'extraits du règlement consultés",
         min_value=2,
         max_value=10,
         value=5,
         help=(
-            "Nombre d'extraits du règlement que le chatbot consulte avant de répondre. "
-            "Plus ce nombre est élevé, plus le contexte est riche, mais la réponse peut "
-            "être moins précise si trop d'informations sont mélangées."
+            "Le chatbot analyse ce nombre d'extraits avant de formuler sa réponse. "
+            "Plus ce nombre est élevé, plus il dispose de contexte. Toutefois, un trop "
+            "grand nombre d'extraits peut mélanger des informations et réduire la "
+            "précision de la réponse."
         ),
     )
 
@@ -101,8 +109,19 @@ for msg in st.session_state.messages:
                     st.markdown(f"**{s['source']} — page {s['page']}** (score : {s['score']:.2f})")
                     st.caption(s["text"][:300] + "...")
 
+# ---------- Questions d'exemple (avant la première question posée) ----------
+if not st.session_state.messages:
+    st.caption("💡 Exemples de questions :")
+    cols = st.columns(len(EXAMPLE_QUESTIONS))
+    for col, example in zip(cols, EXAMPLE_QUESTIONS):
+        with col:
+            if st.button(example, use_container_width=True):
+                st.session_state.pending_question = example
+
 # ---------- Zone de saisie ----------
 question = st.chat_input("Pose ta question sur l'AI Act...")
+if not question:
+    question = st.session_state.pop("pending_question", None)
 
 if question:
     st.session_state.messages.append({"role": "user", "content": question})
@@ -134,5 +153,6 @@ if question:
                     "content": answer_text,
                     "sources": sources,
                 })
+                st.rerun()
             except Exception as e:
                 st.error(f"Erreur : {e}")
