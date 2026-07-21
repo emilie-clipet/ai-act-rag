@@ -77,12 +77,6 @@ with st.sidebar:
         ),
     )
 
-    st.divider()
-    st.caption(
-        "Avant la première utilisation : place un PDF officiel de l'AI Act dans le dossier "
-        "`data/` puis lance `python ingest.py`."
-    )
-
 # ---------- Chargement du pipeline RAG (mis en cache) ----------
 @st.cache_resource
 def load_pipeline():
