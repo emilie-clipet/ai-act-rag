@@ -21,7 +21,7 @@ with st.sidebar:
     st.header("⚙️ Configuration")
     backend = st.selectbox(
         "Modèle de génération (gratuit)",
-        options=["ollama", "groq"],
+        options=["groq", "ollama"],
         format_func=lambda x: "Ollama (local, 100% gratuit)" if x == "ollama" else "Groq (cloud, free tier)",
     )
 
