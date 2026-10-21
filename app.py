@@ -59,7 +59,7 @@ with st.sidebar:
         )
         api_key = None
     else:
-        model_name = st.text_input("Nom du modèle Groq", value="llama-3.1-8b-instant")
+        model_name = st.text_input("Nom du modèle Groq", value="openai/gpt-oss-20b")
         try:
             secret_api_key = st.secrets.get("GROQ_API_KEY")
         except Exception:
