@@ -16,8 +16,6 @@ st.caption(
     "Les réponses sont générées à partir des documents officiels indexés, avec citation des sources."
 )
 
-GROQ_MODEL = "llama-3.1-8b-instant"
-
 EXAMPLE_QUESTIONS = [
     "Quelles sont les obligations pour les systèmes d'IA à haut risque ?",
     "Qu'est-ce qu'un système d'IA selon l'AI Act ?",
@@ -44,19 +42,36 @@ if not st.session_state.welcome_shown:
     st.session_state.welcome_shown = True
     welcome_dialog()
 
-# ---------- Clé API Groq (depuis les secrets Streamlit) ----------
-try:
-    api_key = st.secrets.get("GROQ_API_KEY")
-except Exception:
-    api_key = None
-
-if not api_key:
-    st.error("Clé API Groq introuvable. Ajoute `GROQ_API_KEY` dans les secrets de l'application.")
-    st.stop()
-
-# ---------- Sidebar ----------
+# ---------- Sidebar : configuration du backend LLM ----------
 with st.sidebar:
     st.header("⚙️ Configuration")
+    backend = st.selectbox(
+        "Modèle de génération (gratuit)",
+        options=["groq", "ollama"],
+        format_func=lambda x: "Ollama (local, 100% gratuit)" if x == "ollama" else "Groq (cloud, free tier)",
+    )
+
+    if backend == "ollama":
+        model_name = st.text_input("Nom du modèle Ollama", value="llama3.2")
+        st.info(
+            "Nécessite Ollama installé et lancé en local (ollama.com), "
+            "et le modèle téléchargé via : `ollama pull llama3.2`"
+        )
+        api_key = None
+    else:
+        model_name = st.text_input("Nom du modèle Groq", value="llama-3.1-8b-instant")
+        try:
+            secret_api_key = st.secrets.get("GROQ_API_KEY")
+        except Exception:
+            secret_api_key = None
+
+        if secret_api_key:
+            api_key = secret_api_key
+            st.success("Clé API Groq chargée automatiquement depuis les secrets.")
+        else:
+            api_key = st.text_input("Clé API Groq (gratuite)", type="password")
+            st.info("Clé gratuite disponible sur https://console.groq.com/keys")
+
     top_k = st.slider(
         "Nombre d'extraits du règlement consultés",
         min_value=2,
@@ -116,13 +131,15 @@ if question:
     with st.chat_message("assistant"):
         with st.spinner("Recherche dans les documents et génération de la réponse..."):
             try:
-                answer_text, sources = pipeline.answer(
-                    question,
-                    backend="groq",
-                    top_k=top_k,
-                    model_name=GROQ_MODEL,
-                    api_key=api_key,
-                )
+                if backend == "groq" and not api_key:
+                    st.warning("Merci de renseigner ta clé API Groq dans la barre latérale.")
+                    st.stop()
+
+                kwargs = {"model_name": model_name}
+                if backend == "groq":
+                    kwargs["api_key"] = api_key
+
+                answer_text, sources = pipeline.answer(question, backend=backend, top_k=top_k, **kwargs)
                 st.markdown(answer_text)
 
                 if sources:
